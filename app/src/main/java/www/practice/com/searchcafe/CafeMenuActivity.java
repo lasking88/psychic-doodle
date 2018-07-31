@@ -19,6 +19,8 @@ import java.util.List;
 public class CafeMenuActivity extends AppCompatActivity {
 
     private List<CafeMenu> mCafeMenus = createFakeData();
+    private TextView mTotalView;
+    private int mTotal = 0;
 
     private List<CafeMenu> createFakeData() {
         List<CafeMenu> items = new ArrayList<>();
@@ -36,7 +38,11 @@ public class CafeMenuActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_cafe_menu);
-
+        mTotalView = findViewById(R.id.text_view_total_price);
+        findViewById(R.id.button_payment).setOnClickListener(l -> {
+            Toast.makeText(this, "Thanks for buying", Toast.LENGTH_SHORT).show();
+            finish();
+        });
         RecyclerView recyclerView = findViewById(R.id.recycler_view_menus);
         DividerItemDecoration decoration = new DividerItemDecoration(this, DividerItemDecoration.VERTICAL);
         recyclerView.addItemDecoration(decoration);
@@ -74,6 +80,9 @@ public class CafeMenuActivity extends AppCompatActivity {
                 int amount = cafeMenu.getAmount();
                 cafeMenu.setAmount(amount + 1);
                 mAmount.setText(String.valueOf(cafeMenu.getAmount()));
+                mTotal += cafeMenu.getPrice();
+                String totalString = "총 " + mTotal + "원";
+                mTotalView.setText(totalString);
             });
 
             mRemoveButton.setOnClickListener(l -> {
@@ -83,6 +92,9 @@ public class CafeMenuActivity extends AppCompatActivity {
                 } else {
                     cafeMenu.setAmount(amount - 1);
                     mAmount.setText(String.valueOf(cafeMenu.getAmount()));
+                    mTotal -= cafeMenu.getPrice();
+                    String totalString = "총 " + mTotal + "원";
+                    mTotalView.setText(totalString);
                 }
             });
         }

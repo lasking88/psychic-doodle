@@ -40,6 +40,7 @@ public class SearchActivity extends AppCompatActivity {
                         dong.getText().toString()
                 });
                 startActivity(intent);
+                finish();
             }
         });
     }

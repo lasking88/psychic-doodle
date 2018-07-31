@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
@@ -24,6 +25,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -41,6 +43,8 @@ import java.util.Locale;
 public class MapsActivity extends BaseActivity implements OnMapReadyCallback {
 
     private static final String EXTRA_LOCATION_PARAMS = "com.practice.www.searchcafe.extra_location_params";
+    private static final String PRESERVED_LATITUDE = "preserved_latitude";
+    private static final String PRESERVED_LONGITUDE = "preserved_longitude";
     private static final String[] LOCATION_PERMISSIONS = new String[]{
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION,
@@ -109,29 +113,46 @@ public class MapsActivity extends BaseActivity implements OnMapReadyCallback {
     }
 
     @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putDouble(PRESERVED_LATITUDE, mCurrentLocation.getLatitude());
+        outState.putDouble(PRESERVED_LONGITUDE, mCurrentLocation.getLongitude());
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
-        showProgressDialog();
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         mMapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         CharSequence[] input = getIntent().getCharSequenceArrayExtra(EXTRA_LOCATION_PARAMS);
-        if (input == null) {
-            setupLocationService();
-        } else {
-            Geocoder geocoder = new Geocoder(this, Locale.getDefault());
-            String locationName = input[CONSTANT_SI] + " " + input[CONSTANT_GU] + " " + input[CONSTANT_DONG];
-            try {
-                List<Address> addresses = geocoder.getFromLocationName(locationName, 1);
-                if (addresses.size() != 0) {
-                    mCurrentLocation = new Location("service provider");
-                    mCurrentLocation.setLatitude(addresses.get(0).getLatitude());
-                    mCurrentLocation.setLongitude(addresses.get(0).getLongitude());
-                    mMapFragment.getMapAsync(this);
+        if (savedInstanceState == null) {
+            showProgressDialog();
+            if (input == null) {
+                setupLocationService();
+            } else {
+                Geocoder geocoder = new Geocoder(this, Locale.getDefault());
+                String locationName = input[CONSTANT_SI] + " " + input[CONSTANT_GU] + " " + input[CONSTANT_DONG];
+                try {
+                    List<Address> addresses = geocoder.getFromLocationName(locationName, 1);
+                    if (addresses.size() != 0) {
+                        mCurrentLocation = new Location("service provider");
+                        mCurrentLocation.setLatitude(addresses.get(0).getLatitude());
+                        mCurrentLocation.setLongitude(addresses.get(0).getLongitude());
+                        mMapFragment.getMapAsync(this);
+                    } else {
+                        Toast.makeText(this, "Failed to search the area", Toast.LENGTH_SHORT).show();
+                        hideProgressDialog();
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
             }
+        } else {
+            mCurrentLocation = new Location("service provider");
+            mCurrentLocation.setLatitude(savedInstanceState.getDouble(PRESERVED_LATITUDE));
+            mCurrentLocation.setLongitude(savedInstanceState.getDouble(PRESERVED_LONGITUDE));
+            mMapFragment.getMapAsync(this);
         }
         RecyclerView recyclerView = findViewById(R.id.recycler_view_cafes);
         DividerItemDecoration decoration = new DividerItemDecoration(this, DividerItemDecoration.VERTICAL);
@@ -154,7 +175,7 @@ public class MapsActivity extends BaseActivity implements OnMapReadyCallback {
         hideProgressDialog();
         mMap = googleMap;
         LatLng location = new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(location));
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, 13));
         for (Cafe c : mCafes) {
             LatLng cafeLocation = new LatLng(c.getLatitude(), c.getLongitude());
             mMap.addMarker(new MarkerOptions()
@@ -166,10 +187,10 @@ public class MapsActivity extends BaseActivity implements OnMapReadyCallback {
 
     private List<Cafe> createFakeData() {
         List<Cafe> mockData = new ArrayList<>();
-        mockData.add(new Cafe("Starbucks", "Korea", 12, 102, 20f, 12f));
-        mockData.add(new Cafe("Edia", "Korea", 45, 122, 200f, 112f));
-        mockData.add(new Cafe("Cafebene", "Korea", 15, 22, 12314f, 12f));
-        mockData.add(new Cafe("Groningen", "Korea", 22, 1, 22f, 22f));
+        mockData.add(new Cafe("스타벅스", "서울시 강남구 삼성2동 112-1", 37.498836,127.029638, 20f, 12f));
+        mockData.add(new Cafe("이디야커피", "서울시 강남구 삼성2동 112-2", 37.497385, 127.030131, 200f, 112f));
+        mockData.add(new Cafe("카페베네", "서울시 강남구 삼성2동 32", 37.499777,127.027504, 12314f, 12f));
+        mockData.add(new Cafe("커피 맛있게 타는 집 2호점 - 겨울연가 촬영지 (강남점)", "서울시 강남구 삼성2동 112", 37.496654, 127.034920, 22f, 22f));
         return mockData;
     }
 
@@ -178,11 +199,13 @@ public class MapsActivity extends BaseActivity implements OnMapReadyCallback {
         private Cafe mCafe;
         private TextView mCafeName;
         private TextView mCafeAddress;
+        private TextView mSeats;
 
         public CafeHolder(LayoutInflater inflater, ViewGroup parent) {
             super(inflater.inflate(R.layout.list_item_cafe, parent, false));
             mCafeName = itemView.findViewById(R.id.text_view_cafe_name);
             mCafeAddress = itemView.findViewById(R.id.text_view_cafe_address);
+            mSeats = itemView.findViewById(R.id.text_view_seats);
             itemView.setOnClickListener(l -> {
                 Intent intent = new Intent(MapsActivity.this, CafeMenuActivity.class);
                 startActivity(intent);
@@ -193,6 +216,9 @@ public class MapsActivity extends BaseActivity implements OnMapReadyCallback {
             mCafe = cafe;
             mCafeName.setText(mCafe.getCafeName());
             mCafeAddress.setText(mCafe.getAddress());
+            mSeats.setText((int)mCafe.getCurrent() + " / " + (int)mCafe.getTotal());
+
+            mSeats.setBackgroundColor(Color.HSVToColor(new float[]{mCafe.getColor(), 1f, .8f}));
         }
     }
 

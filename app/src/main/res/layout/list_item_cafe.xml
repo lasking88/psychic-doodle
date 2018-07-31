@@ -5,7 +5,7 @@
     <!--</data>-->
 
     <LinearLayout
-        android:orientation="vertical"
+        android:orientation="horizontal"
         android:background="?android:attr/selectableItemBackground"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -14,19 +14,52 @@
         android:paddingTop="4dp"
         android:paddingBottom="4dp">
 
-        <TextView
-            android:id="@+id/text_view_cafe_name"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="22sp"
-            android:textColor="@android:color/black"
-            android:text="Starbucks"/>
+        <ImageView
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:layout_gravity="center"
+            android:src="@drawable/img_logo_example"/>
 
-        <TextView
-            android:id="@+id/text_view_cafe_address"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="16sp"
-            android:text="Netherlands, Groningen"/>
+            android:layout_marginStart="16dp">
+
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    android:id="@+id/text_view_cafe_name"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:textSize="22sp"
+                    android:textColor="@android:color/black"
+                    android:text="Starbucks"/>
+
+                <TextView
+                    android:id="@+id/text_view_seats"
+                    android:background="@android:color/holo_green_dark"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:padding="2dp"
+                    android:paddingStart="4dp"
+                    android:paddingEnd="4dp"
+                    android:textColor="@android:color/white"
+                    android:text="00/00"/>
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/text_view_cafe_address"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="16sp"
+                android:text="Netherlands, Groningen"/>
+
+        </LinearLayout>
     </LinearLayout>
 </layout>

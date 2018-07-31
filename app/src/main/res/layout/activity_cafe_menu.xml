@@ -9,13 +9,33 @@
         android:id="@+id/recycler_view_menus"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_above="@+id/button_payment">
+        android:layout_above="@+id/linear_layout_payment">
 
     </android.support.v7.widget.RecyclerView>
-    <Button
-        android:id="@+id/button_payment"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+
+    <LinearLayout
+        android:id="@+id/linear_layout_payment"
+        android:orientation="horizontal"
         android:layout_alignParentBottom="true"
-        android:text="@string/payment"/>
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:id="@+id/text_view_total_price"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:textColor="@android:color/black"
+            android:text="총 0원"/>
+
+        <Button
+            android:id="@+id/button_payment"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="@string/payment"/>
+    </LinearLayout>
+
 </RelativeLayout>

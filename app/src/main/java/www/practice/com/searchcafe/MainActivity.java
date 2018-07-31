@@ -30,7 +30,6 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.button_customized_search).setOnClickListener(l -> {
             Intent intent = new Intent(this, SearchActivity.class);
             startActivity(intent);
-            finish();
         });
     }
 }
