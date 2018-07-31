@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">카페 검색</string>
+    <string name="automatic_search">GPS 위치</string>
+    <string name="customized_search">사용자 설정 위치</string>
+    <string name="title_activity_maps">카페 리스트</string>
+    <string name="si">시</string>
+    <string name="gu">구</string>
+    <string name="dong">동</string>
+    <string name="search">검색</string>
+    <string name="payment">구매하기</string>
+    <string name="menu">메뉴</string>
+</resources>
