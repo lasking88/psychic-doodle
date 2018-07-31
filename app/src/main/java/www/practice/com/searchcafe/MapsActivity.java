@@ -61,7 +61,7 @@ public class MapsActivity extends BaseActivity implements OnMapReadyCallback {
     private Location mCurrentLocation;
     private LocationManager mLocationManager;
     private LocationListener mLocationListener;
-    private List<Cafe> mCafes; // must be substituted with real data.
+    private List<Cafe> mCafes;
 
     private FirebaseFirestore mFirestore;
 
@@ -79,7 +79,7 @@ public class MapsActivity extends BaseActivity implements OnMapReadyCallback {
             @Override
             public void onLocationChanged(Location location) {
                 mCurrentLocation = location;
-                mMapFragment.getMapAsync(MapsActivity.this);
+                fetchCafes();
                 mLocationManager.removeUpdates(mLocationListener);
             }
 
@@ -130,8 +130,6 @@ public class MapsActivity extends BaseActivity implements OnMapReadyCallback {
         setContentView(R.layout.activity_maps);
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         mMapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
-
-        fetchCafes();
         CharSequence[] input = getIntent().getCharSequenceArrayExtra(EXTRA_LOCATION_PARAMS);
         if (savedInstanceState == null) {
             showProgressDialog();
@@ -146,7 +144,7 @@ public class MapsActivity extends BaseActivity implements OnMapReadyCallback {
                         mCurrentLocation = new Location("service provider");
                         mCurrentLocation.setLatitude(addresses.get(0).getLatitude());
                         mCurrentLocation.setLongitude(addresses.get(0).getLongitude());
-                        mMapFragment.getMapAsync(this);
+                        fetchCafes();
                     } else {
                         Toast.makeText(this, "Failed to search the area", Toast.LENGTH_SHORT).show();
                         hideProgressDialog();
@@ -159,7 +157,7 @@ public class MapsActivity extends BaseActivity implements OnMapReadyCallback {
             mCurrentLocation = new Location("service provider");
             mCurrentLocation.setLatitude(savedInstanceState.getDouble(PRESERVED_LATITUDE));
             mCurrentLocation.setLongitude(savedInstanceState.getDouble(PRESERVED_LONGITUDE));
-            mMapFragment.getMapAsync(this);
+            fetchCafes();
         }
         mRecyclerView = findViewById(R.id.recycler_view_cafes);
         DividerItemDecoration decoration = new DividerItemDecoration(this, DividerItemDecoration.VERTICAL);
@@ -182,22 +180,31 @@ public class MapsActivity extends BaseActivity implements OnMapReadyCallback {
         mMap = googleMap;
         LatLng location = new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, 13));
-        for (Cafe c : mCafes) {
-            LatLng cafeLocation = new LatLng(c.getLatitude(), c.getLongitude());
-            mMap.addMarker(new MarkerOptions()
-                    .position(cafeLocation)
-                    .title(c.getCafeName())
-                    .icon(BitmapDescriptorFactory.defaultMarker(c.getColor())));
+        if (mCafes != null) {
+            for (Cafe c : mCafes) {
+                LatLng cafeLocation = new LatLng(c.getLatitude(), c.getLongitude());
+                mMap.addMarker(new MarkerOptions()
+                        .position(cafeLocation)
+                        .title(c.getCafeName())
+                        .icon(BitmapDescriptorFactory.defaultMarker(c.getColor())));
+            }
         }
     }
 
-    private void updateRecyclerView() {
+    private void updateUI() {
         mRecyclerView.setAdapter(new CafeAdapter(mCafes));
+        mMapFragment.getMapAsync(MapsActivity.this);
     }
 
     private void fetchCafes() {
         mFirestore = FirebaseFirestore.getInstance();
-        mFirestore.collection("cafes").get().addOnCompleteListener(l -> {
+        GeoPoint minimum = new GeoPoint(mCurrentLocation.getLatitude() - 0.02, mCurrentLocation.getLongitude() - 0.02);
+        GeoPoint maximum = new GeoPoint(mCurrentLocation.getLatitude() + 0.02, mCurrentLocation.getLongitude() + 0.02);
+        mFirestore.collection("cafes")
+                .whereGreaterThan("latlng", minimum)
+                .whereLessThan("latlng", maximum)
+                .get()
+                .addOnCompleteListener(l -> {
             if (l.isSuccessful()) {
                 mCafes = new ArrayList<>();
                 for (QueryDocumentSnapshot document : l.getResult()) {
@@ -211,7 +218,7 @@ public class MapsActivity extends BaseActivity implements OnMapReadyCallback {
                     Cafe cafe = new Cafe(document.getId(), imgUrl, cafeName, address, geoPoint.getLatitude(), geoPoint.getLongitude(), total, current);
                     mCafes.add(cafe);
                 }
-                updateRecyclerView();
+                updateUI();
             } else {
                 Log.w(TAG, "Firestore get collection is not successful");
             }
