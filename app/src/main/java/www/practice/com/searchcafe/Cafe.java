@@ -1,22 +1,40 @@
 package www.practice.com.searchcafe;
 
-import android.graphics.Color;
-
 public class Cafe {
+    private String mId;
+    private String mImgUrl;
     private String mCafeName;
     private String mAddress;
     private double mLatitude;
     private double mLongitude;
-    private float mTotal;
-    private float mCurrent;
+    private int mTotal;
+    private int mCurrent;
 
-    public Cafe(String cafeName, String address, double latitude, double longitude, float total, float current) {
+    public Cafe(String id, String imgUrl, String cafeName, String address, double latitude, double longitude, int total, int current) {
+        mId = id;
+        mImgUrl = imgUrl;
         mCafeName = cafeName;
         mAddress = address;
         mLatitude = latitude;
         mLongitude = longitude;
         mTotal = total;
         mCurrent = current;
+    }
+
+    public String getId() {
+        return mId;
+    }
+
+    public void setId(String id) {
+        mId = id;
+    }
+
+    public String getImgUrl() {
+        return mImgUrl;
+    }
+
+    public void setImgUrl(String imgUrl) {
+        mImgUrl = imgUrl;
     }
 
     public String getCafeName() {
@@ -51,24 +69,24 @@ public class Cafe {
         mLongitude = longitude;
     }
 
-    public float getTotal() {
+    public int getTotal() {
         return mTotal;
     }
 
-    public void setTotal(float total) {
+    public void setTotal(int total) {
         mTotal = total;
     }
 
-    public float getCurrent() {
+    public int getCurrent() {
         return mCurrent;
     }
 
-    public void setCurrent(float current) {
+    public void setCurrent(int current) {
         mCurrent = current;
     }
 
     public float getColor() {
-        float rate = 1f - mCurrent / mTotal;
+        float rate = 1f - mCurrent / (float)mTotal;
         return 120f * rate;
     }
 }

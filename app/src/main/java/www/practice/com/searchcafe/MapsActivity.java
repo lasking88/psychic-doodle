@@ -10,23 +10,20 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.os.Build;
-import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.bumptech.glide.Glide;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -34,6 +31,9 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.GeoPoint;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -42,6 +42,7 @@ import java.util.Locale;
 
 public class MapsActivity extends BaseActivity implements OnMapReadyCallback {
 
+    private static final String TAG = "MapsActivity";
     private static final String EXTRA_LOCATION_PARAMS = "com.practice.www.searchcafe.extra_location_params";
     private static final String PRESERVED_LATITUDE = "preserved_latitude";
     private static final String PRESERVED_LONGITUDE = "preserved_longitude";
@@ -60,7 +61,11 @@ public class MapsActivity extends BaseActivity implements OnMapReadyCallback {
     private Location mCurrentLocation;
     private LocationManager mLocationManager;
     private LocationListener mLocationListener;
-    private List<Cafe> mCafes = createFakeData(); // must be substituted with real data.
+    private List<Cafe> mCafes; // must be substituted with real data.
+
+    private FirebaseFirestore mFirestore;
+
+    private RecyclerView mRecyclerView;
 
     public static Intent newIntent(Context packageContext, CharSequence[] input) {
         Intent intent = new Intent(packageContext, MapsActivity.class);
@@ -125,6 +130,8 @@ public class MapsActivity extends BaseActivity implements OnMapReadyCallback {
         setContentView(R.layout.activity_maps);
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         mMapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
+
+        fetchCafes();
         CharSequence[] input = getIntent().getCharSequenceArrayExtra(EXTRA_LOCATION_PARAMS);
         if (savedInstanceState == null) {
             showProgressDialog();
@@ -154,11 +161,10 @@ public class MapsActivity extends BaseActivity implements OnMapReadyCallback {
             mCurrentLocation.setLongitude(savedInstanceState.getDouble(PRESERVED_LONGITUDE));
             mMapFragment.getMapAsync(this);
         }
-        RecyclerView recyclerView = findViewById(R.id.recycler_view_cafes);
+        mRecyclerView = findViewById(R.id.recycler_view_cafes);
         DividerItemDecoration decoration = new DividerItemDecoration(this, DividerItemDecoration.VERTICAL);
-        recyclerView.addItemDecoration(decoration);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        recyclerView.setAdapter(new CafeAdapter(mCafes));
+        mRecyclerView.addItemDecoration(decoration);
+        mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
     }
 
     /**
@@ -185,39 +191,68 @@ public class MapsActivity extends BaseActivity implements OnMapReadyCallback {
         }
     }
 
+    private void updateRecyclerView() {
+        mRecyclerView.setAdapter(new CafeAdapter(mCafes));
+    }
+
+    private void fetchCafes() {
+        mFirestore = FirebaseFirestore.getInstance();
+        mFirestore.collection("cafes").get().addOnCompleteListener(l -> {
+            if (l.isSuccessful()) {
+                mCafes = new ArrayList<>();
+                for (QueryDocumentSnapshot document : l.getResult()) {
+                    String imgUrl = (String) document.get("imgurl");
+                    String cafeName = (String) document.get("name");
+                    String address = (String) document.get("address");
+                    GeoPoint geoPoint = (GeoPoint) document.get("latlng");
+                    int total = Integer.valueOf((String) document.get("totalSeats"));
+                    int current = Integer.valueOf((String) document.get("currentSeats"));
+                    assert geoPoint != null;
+                    Cafe cafe = new Cafe(document.getId(), imgUrl, cafeName, address, geoPoint.getLatitude(), geoPoint.getLongitude(), total, current);
+                    mCafes.add(cafe);
+                }
+                updateRecyclerView();
+            } else {
+                Log.w(TAG, "Firestore get collection is not successful");
+            }
+        });
+    }
+
     private List<Cafe> createFakeData() {
         List<Cafe> mockData = new ArrayList<>();
-        mockData.add(new Cafe("스타벅스", "서울시 강남구 삼성2동 112-1", 37.498836,127.029638, 20f, 12f));
-        mockData.add(new Cafe("이디야커피", "서울시 강남구 삼성2동 112-2", 37.497385, 127.030131, 200f, 112f));
-        mockData.add(new Cafe("카페베네", "서울시 강남구 삼성2동 32", 37.499777,127.027504, 12314f, 12f));
-        mockData.add(new Cafe("커피 맛있게 타는 집 2호점 - 겨울연가 촬영지 (강남점)", "서울시 강남구 삼성2동 112", 37.496654, 127.034920, 22f, 22f));
+//        mockData.add(new Cafe("", "스타벅스", "서울시 강남구 삼성2동 112-1", 37.498836,127.029638, 20f, 12f));
+//        mockData.add(new Cafe("", "이디야커피", "서울시 강남구 삼성2동 112-2", 37.497385, 127.030131, 200f, 112f));
+//        mockData.add(new Cafe("", "카페베네", "서울시 강남구 삼성2동 32", 37.499777,127.027504, 12314f, 12f));
+//        mockData.add(new Cafe("", "커피 맛있게 타는 집 2호점 - 겨울연가 촬영지 (강남점)", "서울시 강남구 삼성2동 112", 37.496654, 127.034920, 22f, 22f));
         return mockData;
     }
 
     private class CafeHolder extends RecyclerView.ViewHolder {
 
         private Cafe mCafe;
+        private ImageView mCafeImage;
         private TextView mCafeName;
         private TextView mCafeAddress;
         private TextView mSeats;
 
         public CafeHolder(LayoutInflater inflater, ViewGroup parent) {
             super(inflater.inflate(R.layout.list_item_cafe, parent, false));
+            mCafeImage = itemView.findViewById(R.id.image_view_cafe);
             mCafeName = itemView.findViewById(R.id.text_view_cafe_name);
             mCafeAddress = itemView.findViewById(R.id.text_view_cafe_address);
             mSeats = itemView.findViewById(R.id.text_view_seats);
             itemView.setOnClickListener(l -> {
-                Intent intent = new Intent(MapsActivity.this, CafeMenuActivity.class);
+                Intent intent = CafeMenuActivity.newIntent(MapsActivity.this, mCafe.getId());
                 startActivity(intent);
             });
         }
 
         public void bind(Cafe cafe) {
             mCafe = cafe;
+            Glide.with(MapsActivity.this).load(mCafe.getImgUrl()).into(mCafeImage);
             mCafeName.setText(mCafe.getCafeName());
             mCafeAddress.setText(mCafe.getAddress());
-            mSeats.setText((int)mCafe.getCurrent() + " / " + (int)mCafe.getTotal());
-
+            mSeats.setText(mCafe.getCurrent() + " / " + mCafe.getTotal());
             mSeats.setBackgroundColor(Color.HSVToColor(new float[]{mCafe.getColor(), 1f, .8f}));
         }
     }

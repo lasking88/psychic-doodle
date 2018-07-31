@@ -15,6 +15,7 @@
         android:paddingBottom="4dp">
 
         <ImageView
+            android:id="@+id/image_view_cafe"
             android:layout_width="52dp"
             android:layout_height="52dp"
             android:layout_gravity="center"

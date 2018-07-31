@@ -1,11 +1,14 @@
 package www.practice.com.searchcafe;
 
+import android.content.Context;
+import android.content.Intent;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,14 +16,27 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.bumptech.glide.Glide;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public class CafeMenuActivity extends AppCompatActivity {
 
-    private List<CafeMenu> mCafeMenus = createFakeData();
+    private static final String TAG = "CafeMenuActivity";
+
+    private static final String EXTRA_ID = "com.practice.www.searchcafe.extra_id";
+
+    private String mId;
+    private List<CafeMenu> mCafeMenus;
     private TextView mTotalView;
     private int mTotal = 0;
+
+    private RecyclerView mRecyclerView;
+
+    private FirebaseFirestore mFirestore;
 
     private List<CafeMenu> createFakeData() {
         List<CafeMenu> items = new ArrayList<>();
@@ -34,20 +50,55 @@ public class CafeMenuActivity extends AppCompatActivity {
         return items;
     }
 
+    public static Intent newIntent(Context packageContext, String id) {
+        Intent intent = new Intent(packageContext, CafeMenuActivity.class);
+        intent.putExtra(EXTRA_ID, id);
+        return intent;
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_cafe_menu);
+        mId = getIntent().getStringExtra(EXTRA_ID);
+        fetchCafeMenus();
         mTotalView = findViewById(R.id.text_view_total_price);
         findViewById(R.id.button_payment).setOnClickListener(l -> {
             Toast.makeText(this, "Thanks for buying", Toast.LENGTH_SHORT).show();
             finish();
         });
-        RecyclerView recyclerView = findViewById(R.id.recycler_view_menus);
+        mRecyclerView = findViewById(R.id.recycler_view_menus);
         DividerItemDecoration decoration = new DividerItemDecoration(this, DividerItemDecoration.VERTICAL);
-        recyclerView.addItemDecoration(decoration);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        recyclerView.setAdapter(new MenuAdapter(mCafeMenus));
+        mRecyclerView.addItemDecoration(decoration);
+        mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+    }
+
+    private void fetchCafeMenus() {
+        mFirestore = FirebaseFirestore.getInstance();
+        mFirestore.collection("cafes")
+                .document(mId)
+                .collection("menus")
+                .get()
+                .addOnCompleteListener(l -> {
+            if (l.isSuccessful()) {
+                mCafeMenus = new ArrayList<>();
+                for (QueryDocumentSnapshot document : l.getResult()) {
+                    String imgUrl = (String) document.get("imgurl");
+                    String name = (String) document.get("name");
+                    String info = (String) document.get("info");
+                    int price = Integer.valueOf((String) document.get("price"));
+                    CafeMenu menu = new CafeMenu(imgUrl, name, price, info);
+                    mCafeMenus.add(menu);
+                }
+                updateRecyclerView();
+            } else {
+                Log.w(TAG, "Firestore get collection is not successful");
+            }
+        });
+    }
+
+    private void updateRecyclerView() {
+        mRecyclerView.setAdapter(new MenuAdapter(mCafeMenus));
     }
 
     private class MenuHolder extends RecyclerView.ViewHolder {
@@ -72,7 +123,7 @@ public class CafeMenuActivity extends AppCompatActivity {
         }
 
         public void bind(CafeMenu cafeMenu) {
-            // TODO : hook up with real thumbnail image
+            Glide.with(CafeMenuActivity.this).load(cafeMenu.getImgUrl()).into(mThumbnail);
             mMenuName.setText(cafeMenu.getName());
             mPrice.setText(String.valueOf(cafeMenu.getPrice()));
             mInfo.setText(cafeMenu.getInformation());
