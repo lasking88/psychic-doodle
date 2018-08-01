@@ -17,6 +17,8 @@
         android:id="@+id/linear_layout_payment"
         android:orientation="horizontal"
         android:layout_alignParentBottom="true"
+        android:background="@android:color/white"
+        android:elevation="8dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 

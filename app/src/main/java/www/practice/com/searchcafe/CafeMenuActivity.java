@@ -125,7 +125,8 @@ public class CafeMenuActivity extends AppCompatActivity {
         public void bind(CafeMenu cafeMenu) {
             Glide.with(CafeMenuActivity.this).load(cafeMenu.getImgUrl()).into(mThumbnail);
             mMenuName.setText(cafeMenu.getName());
-            mPrice.setText(String.valueOf(cafeMenu.getPrice()));
+            String priceString = String.valueOf(cafeMenu.getPrice()) + "원";
+            mPrice.setText(priceString);
             mInfo.setText(cafeMenu.getInformation());
             mAddButton.setOnClickListener(l -> {
                 int amount = cafeMenu.getAmount();
