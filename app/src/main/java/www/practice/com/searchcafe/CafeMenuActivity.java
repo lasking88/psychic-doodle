@@ -13,15 +13,25 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.RadioButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.annotation.Nullable;
 
 public class CafeMenuActivity extends AppCompatActivity {
 
@@ -38,18 +48,6 @@ public class CafeMenuActivity extends AppCompatActivity {
 
     private FirebaseFirestore mFirestore;
 
-    private List<CafeMenu> createFakeData() {
-        List<CafeMenu> items = new ArrayList<>();
-        items.add(new CafeMenu(null, "Coffee", 3000, "Hot"));
-        items.add(new CafeMenu(null, "Ice Coffee", 5000, "Cold"));
-        items.add(new CafeMenu(null, "Latte", 7000, "with milk"));
-        items.add(new CafeMenu(null, "Moca", 6000, "with chocolate"));
-        items.add(new CafeMenu(null, "Ssanghwatang", 5500, "Best menu"));
-        items.add(new CafeMenu(null, "Water", 3000, "Mineral"));
-        items.add(new CafeMenu(null, "Lemon Juice", 100, "Cold"));
-        return items;
-    }
-
     public static Intent newIntent(Context packageContext, String id) {
         Intent intent = new Intent(packageContext, CafeMenuActivity.class);
         intent.putExtra(EXTRA_ID, id);
@@ -62,15 +60,36 @@ public class CafeMenuActivity extends AppCompatActivity {
         setContentView(R.layout.activity_cafe_menu);
         mId = getIntent().getStringExtra(EXTRA_ID);
         fetchCafeMenus();
+        final RadioButton indoorButton = findViewById(R.id.radio_button_indoor);
+        indoorButton.setChecked(true);
         mTotalView = findViewById(R.id.text_view_total_price);
         findViewById(R.id.button_payment).setOnClickListener(l -> {
-            Toast.makeText(this, "Thanks for buying", Toast.LENGTH_SHORT).show();
+            if (indoorButton.isChecked()) {
+                updateCafeCustomers();
+            } else {
+                Toast.makeText(this, "See you again!", Toast.LENGTH_SHORT).show();
+            }
             finish();
         });
         mRecyclerView = findViewById(R.id.recycler_view_menus);
         DividerItemDecoration decoration = new DividerItemDecoration(this, DividerItemDecoration.VERTICAL);
         mRecyclerView.addItemDecoration(decoration);
         mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+    }
+
+    private void updateCafeCustomers() {
+        mFirestore = FirebaseFirestore.getInstance();
+        DocumentReference docRef = mFirestore.collection("cafes").document(mId);
+        docRef.get().addOnSuccessListener(documentSnapshot -> {
+            int current = Integer.valueOf((String)documentSnapshot.get("currentSeats"));
+            int total = Integer.valueOf((String)documentSnapshot.get("totalSeats"));
+            if (current < total) {
+                docRef.update("currentSeats", String.valueOf(current + 1));
+                Toast.makeText(this, "You can take a seat.", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "Sorry, but all seats are taken.", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void fetchCafeMenus() {
@@ -128,6 +147,7 @@ public class CafeMenuActivity extends AppCompatActivity {
             String priceString = String.valueOf(cafeMenu.getPrice()) + "원";
             mPrice.setText(priceString);
             mInfo.setText(cafeMenu.getInformation());
+            mAmount.setText(String.valueOf(cafeMenu.getAmount()));
             mAddButton.setOnClickListener(l -> {
                 int amount = cafeMenu.getAmount();
                 cafeMenu.setAmount(amount + 1);

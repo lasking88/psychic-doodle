@@ -31,14 +31,23 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.GeoPoint;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+
+import javax.annotation.Nullable;
 
 public class MapsActivity extends BaseActivity implements OnMapReadyCallback {
 
@@ -208,6 +217,15 @@ public class MapsActivity extends BaseActivity implements OnMapReadyCallback {
             if (l.isSuccessful()) {
                 mCafes = new ArrayList<>();
                 for (QueryDocumentSnapshot document : l.getResult()) {
+                    document.getReference().addSnapshotListener((documentSnapshot, e) -> {
+                        for (Cafe c : mCafes) {
+                            if (documentSnapshot.getId().equals(c.getId())) {
+                                c.setCurrent(Integer.valueOf((String) documentSnapshot.get("currentSeats")));
+                                updateUI();
+                                break;
+                            }
+                        }
+                    });
                     String imgUrl = (String) document.get("imgurl");
                     String cafeName = (String) document.get("name");
                     String address = (String) document.get("address");
@@ -223,15 +241,6 @@ public class MapsActivity extends BaseActivity implements OnMapReadyCallback {
                 Log.w(TAG, "Firestore get collection is not successful");
             }
         });
-    }
-
-    private List<Cafe> createFakeData() {
-        List<Cafe> mockData = new ArrayList<>();
-//        mockData.add(new Cafe("", "스타벅스", "서울시 강남구 삼성2동 112-1", 37.498836,127.029638, 20f, 12f));
-//        mockData.add(new Cafe("", "이디야커피", "서울시 강남구 삼성2동 112-2", 37.497385, 127.030131, 200f, 112f));
-//        mockData.add(new Cafe("", "카페베네", "서울시 강남구 삼성2동 32", 37.499777,127.027504, 12314f, 12f));
-//        mockData.add(new Cafe("", "커피 맛있게 타는 집 2호점 - 겨울연가 촬영지 (강남점)", "서울시 강남구 삼성2동 112", 37.496654, 127.034920, 22f, 22f));
-        return mockData;
     }
 
     private class CafeHolder extends RecyclerView.ViewHolder {
